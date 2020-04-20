@@ -18,7 +18,23 @@ RUN         curl -L -o /tmp/glassfish-4.1.zip http://download.java.net/glassfish
 
 EXPOSE      8080 4848 8181
 
-WORKDIR     /usr/local/glassfish4
+WORKDIR     /usr/local/glassfish4/bin
+
+# User: admin / Pass: glassfish
+RUN         echo "admin;{SSHA256}80e0NeB6XBWXsIPa7pT54D9JZ5DR5hGQV1kN1OAsgJePNXY6Pl0EIw==;asadmin" > /usr/local/glassfish4/glassfish/domains/domain1/config/admin-keyfile
+RUN         echo "AS_ADMIN_PASSWORD=glassfish" > pwdfile
+
+COPY        postgresql-9.4.1209.jar /usr/local/glassfish4/glassfish/domains/domain1/lib/
 
 # verbose causes the process to remain in the foreground so that docker can track it
-CMD         asadmin start-domain --verbose
+# Default to admin/glassfish as user/pass
+RUN \
+  ./asadmin start-domain && \
+  ./asadmin --user admin --passwordfile pwdfile enable-secure-admin && \
+  ./asadmin stop-domain
+
+# need to know where is the user path to add bashrc
+#RUN echo "export PATH=$PATH:/usr/local/glassfish4/bin" >> /opt/glassfish/.bashrc
+
+# Default command to run on container boot
+CMD ["/usr/local/glassfish4/glassfish/bin/asadmin", "start-domain", "--verbose=true"]
